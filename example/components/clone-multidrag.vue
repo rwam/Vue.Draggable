@@ -25,10 +25,6 @@
       <draggable
         class="dragArea list-group"
         :list="list2"
-        :options="{
-          multiDrag: true,
-          selectedClass: 'selected'
-        }"
         group="people"
         @change="log"
       >

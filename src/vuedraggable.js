@@ -397,7 +397,13 @@ const draggableComponent = {
     onDragRemove(evt) {
       insertNodeAt(this.rootContainer, evt.item, evt.oldIndex);
       if (evt.pullMode === "clone") {
-        removeNode(evt.clone);
+        if (evt.clones) {
+          evt.clones.forEach(clone => {
+            removeNode(clone);
+          });
+        } else {
+          removeNode(evt.clone);
+        }
         return;
       }
       const oldIndex = this.context.index;
