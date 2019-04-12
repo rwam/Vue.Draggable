@@ -24,7 +24,7 @@
     "component"
   ],
   "dependencies": {
-    "sortablejs": "^1.8.4"
+    "sortablejs": "git+https://github.com/SortableJS/Sortable#next-version"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.4.0",
