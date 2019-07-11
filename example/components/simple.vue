@@ -31,6 +31,7 @@
         :disabled="!enabled"
         class="list-group"
         ghost-class="ghost"
+        :move="checkMove"
         @start="dragging = true"
         @end="dragging = false"
       >
@@ -80,6 +81,9 @@ export default {
     },
     replace: function() {
       this.list = [{ name: "Edgard", id: id++ }];
+    },
+    checkMove: function(e) {
+      window.console.log("Future index: " + e.draggedContext.futureIndex);
     }
   }
 };

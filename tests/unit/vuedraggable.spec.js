@@ -10,6 +10,8 @@ Sortable.mockImplementation(() => SortableFake);
 import draggable from "@/vuedraggable";
 import Vue from "vue";
 import Fake from "./helper/FakeComponent.js"
+import FakeFunctional from "./helper/FakeFunctionalComponent.js"
+
 
 let wrapper;
 let vm;
@@ -190,18 +192,28 @@ describe("draggable.vue when initialized with list", () => {
     expect(wrapper.html()).toEqual(initialRender);
   })
 
-  test.each([
+  describe.each([
     "ul",
     "span",
     "div"
   ])(
-    "renders tag %s as root element",
+    "considering a tag %s",
     (tag) => {
-      wrapper = shallowMount(draggable, {
-        propsData: { tag }
+      beforeEach(() => {
+        wrapper = shallowMount(draggable, {
+          propsData: { tag }
+        });
       });
-      const expectedRegex = new RegExp(`^<${tag}>.*<\/${tag}>$`);
-      expect(wrapper.html()).toMatch(expectedRegex);
+
+      it("renders tag as root element", () => {
+        const expectedRegex = new RegExp(`^<${tag}>.*<\/${tag}>$`);
+        expect(wrapper.html()).toMatch(expectedRegex);
+      })
+
+      it("set noneFunctionalComponentMode to false ", () => {
+        const { noneFunctionalComponentMode } = vm;
+        expect(noneFunctionalComponentMode).toBe(false);
+      })
     }
   )
 
@@ -271,6 +283,26 @@ describe("draggable.vue when initialized with list", () => {
     })
   });
 
+  test.each([
+    [Fake, true],
+    [FakeFunctional, false]
+  ])(
+    "when using component as tag",
+    (component, expectedNoneFunctionalComponentMode) => {
+      wrapper = mount(draggable, {
+        propsData: {
+          tag: "child",
+        },
+        stubs: {
+          child: component
+        }
+      });
+      const { vm: { noneFunctionalComponentMode } } = wrapper;
+      expect(noneFunctionalComponentMode).toBe(expectedNoneFunctionalComponentMode);
+    }
+  )
+
+
   it("keeps a reference to Sortable instance", () => {
     expect(vm._sortable).toBe(SortableFake);
   })
@@ -289,6 +321,7 @@ describe("draggable.vue when initialized with list", () => {
   test.each(
     [
       ["onChoose", "choose"],
+      ["onUnchoose", "unchoose"],
       ["onSort", "sort"],
       ["onFilter", "filter"],
       ["onClone", "clone"]
@@ -736,7 +769,7 @@ describe("draggable.vue when initialized with list", () => {
       }
     );
 
-    test.each(["Start", "Add", "Remove", "Update", "End", "Choose", "Sort", "Filter", "Clone", "Move"])
+    test.each(["Start", "Add", "Remove", "Update", "End", "Choose", "Unchoose", "Sort", "Filter", "Clone", "Move"])
       ("do not call option when updating option on%s",
         (callBack) => {
           vm.$attrs = { [`on${callBack}`]: jest.fn() };
@@ -1119,6 +1152,47 @@ describe("draggable.vue when initialized with a transition group", () => {
       })
     });
 
+    describe("when calling onMove", () => {
+      let originalEvt;
+      let move;
+      let doMove;
+
+      beforeEach(() => {
+        move = jest.fn();
+        wrapper.setProps({ move });
+        evt = {
+          to: element.children[0],
+          related: element.children[0].children[1],
+          willInsertAfter: false
+        };
+        originalEvt = {
+          domInfo: true
+        };
+        doMove = () => getEvent("onMove")(evt, originalEvt);
+      });
+
+      it("calls move with list information", () => {
+        const expectedEvt = {
+          draggedContext: {
+            element: "b",
+            futureIndex: 1,
+            index: 1
+          },
+          relatedContext: {
+            component: vm,
+            element: "b",
+            index: 1,
+            list: ["a", "b", "c"]
+          },
+          to: element.children[0],
+          related: element.children[0].children[1],
+          willInsertAfter: false
+        };
+        doMove();
+        expect(move.mock.calls).toEqual([[expectedEvt, originalEvt]]);
+      });
+    });
+
     describe("when sending DragEnd", () => {
       let endEvt;
       beforeEach(() => {
@@ -1133,6 +1207,37 @@ describe("draggable.vue when initialized with a transition group", () => {
         await Vue.nextTick();
         expect(wrapper.emitted().end).toEqual([[endEvt]]);
       })
+    })
+  });
+
+  describe("draggable.vue when initialized with header and footer scoped slots", () => {
+    beforeEach(() => {
+      resetMocks();
+      items = ["a", "b", "c"];
+      wrapper = shallowMount(draggable, {
+        attachToDocument: true,
+        propsData: {
+          list: items
+        },
+        attrs: {
+          sortableOption: "value",
+          "to-be-camelized": true
+        },
+        slots: {
+          default: items.map(item => `<div>${item}</div>`),
+        },
+        scopedSlots: {
+          header: "<header/>",
+          footer: "<footer/>"
+        },
+      });
+      vm = wrapper.vm;
+      props = vm.$options.props;
+      element = wrapper.element;
+    });
+
+    it("renders correctly", () => {
+      expect(wrapper.html()).toEqual(initialRender);
     })
   });
 });

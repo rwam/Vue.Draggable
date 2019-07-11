@@ -1,11 +1,12 @@
 {
   "name": "vuedraggable",
-  "version": "2.20.0",
+  "version": "2.23.0",
   "description": "draggable component for vue",
+  "license": "MIT",
   "main": "dist/vuedraggable.umd.min.js",
   "private": false,
   "scripts": {
-    "serve": "vue-cli-service serve ./example/main.js --open",
+    "serve": "vue-cli-service serve ./example/main.js --open --mode local",
     "build:doc": "vue-cli-service build ./example/main.js --dest docs --mode development",
     "build": "vue-cli-service build --name vuedraggable --entry ./src/vuedraggable.js --target lib",
     "lint": "vue-cli-service lint src example",
@@ -21,10 +22,11 @@
     "drop",
     "list",
     "Sortable.js",
-    "component"
+    "component",
+    "nested"
   ],
   "dependencies": {
-    "sortablejs": "git+https://github.com/SortableJS/Sortable#next-version"
+    "sortablejs": "^1.9.0"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.4.0",
@@ -48,7 +50,9 @@
     "vue-cli-plugin-component": "^1.10.5",
     "vue-router": "^3.0.2",
     "vue-server-renderer": "^2.6.8",
-    "vue-template-compiler": "^2.6.8"
+    "vue-template-compiler": "^2.6.8",
+    "vuetify": "^1.5.16",
+    "vuex": "^3.1.1"
   },
   "eslintConfig": {
     "root": true,

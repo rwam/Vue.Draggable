@@ -127,12 +127,28 @@
 import $ from "jquery";
 
 const requireContext = require.context("./components/", false, /\.vue$/);
-
 const components = requireContext.keys().reduce((acc, key) => {
   const component = requireContext(key).default;
   acc[component.name] = component;
   return acc;
 }, {});
+
+const showAll = process.env.VUE_APP_SHOW_ALL_EXAMPLES === "true";
+if (showAll) {
+  const order = Object.keys(components);
+  const requireContextDebug = require.context(
+    "./debug-components/",
+    false,
+    /\.vue$/
+  );
+  requireContextDebug.keys().reduce((acc, key) => {
+    const component = requireContextDebug(key).default;
+    component.order += order;
+    component.display = `DEBUG: ${component.display}`;
+    acc[component.name] = component;
+    return acc;
+  }, components);
+}
 
 export default {
   name: "app",

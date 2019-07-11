@@ -40,6 +40,10 @@ function delegateAndEmit(evtName) {
   };
 }
 
+function isTransitionName(name) {
+  return ["transition-group", "TransitionGroup"].includes(name);
+}
+
 function isTransition(slots) {
   if (!slots || slots.length !== 1) {
     return false;
@@ -48,16 +52,22 @@ function isTransition(slots) {
   if (!componentOptions) {
     return false;
   }
-  return ["transition-group", "TransitionGroup"].includes(componentOptions.tag);
+  return isTransitionName(componentOptions.tag);
 }
 
-function computeChildrenAndOffsets(children, { header, footer }) {
+function getSlot(slot, scopedSlot, key) {
+  return slot[key] || (scopedSlot[key] ? scopedSlot[key]() : undefined);
+}
+
+function computeChildrenAndOffsets(children, slot, scopedSlot) {
   let headerOffset = 0;
   let footerOffset = 0;
+  const header = getSlot(slot, scopedSlot, "header");
   if (header) {
     headerOffset = header.length;
     children = children ? [...header, ...children] : [...header];
   }
+  const footer = getSlot(slot, scopedSlot, "footer");
   if (footer) {
     footerOffset = footer.length;
     children = children ? [...children, ...footer] : [...footer];
@@ -89,7 +99,7 @@ function getComponentAttributes($attrs, componentData) {
 }
 
 const eventsListened = ["Start", "Add", "Remove", "Update", "End"];
-const eventsToEmit = ["Choose", "Sort", "Filter", "Clone"];
+const eventsToEmit = ["Choose", "Unchoose", "Sort", "Filter", "Clone"];
 const readonlyProperties = ["Move", ...eventsListened, ...eventsToEmit].map(
   evt => "on" + evt
 );
@@ -146,8 +156,7 @@ const draggableComponent = {
   data() {
     return {
       transitionMode: false,
-      noneFunctionalComponentMode: false,
-      init: false
+      noneFunctionalComponentMode: false
     };
   },
 
@@ -156,7 +165,8 @@ const draggableComponent = {
     this.transitionMode = isTransition(slots);
     const { children, headerOffset, footerOffset } = computeChildrenAndOffsets(
       slots,
-      this.$slots
+      this.$slots,
+      this.$scopedSlots
     );
     this.headerOffset = headerOffset;
     this.footerOffset = footerOffset;
@@ -186,7 +196,8 @@ const draggableComponent = {
 
   mounted() {
     this.noneFunctionalComponentMode =
-      this.getTag().toLowerCase() !== this.$el.nodeName.toLowerCase();
+      this.getTag().toLowerCase() !== this.$el.nodeName.toLowerCase() &&
+      !this.getIsFunctional();
     if (this.noneFunctionalComponentMode && this.transitionMode) {
       throw new Error(
         `Transition-group inside component is not supported. Please alter tag value or remove transition-group. Current tag value: ${this.getTag()}`
@@ -251,6 +262,11 @@ const draggableComponent = {
   },
 
   methods: {
+    getIsFunctional() {
+      const { fnOptions } = this._vnode;
+      return fnOptions && fnOptions.functional;
+    },
+
     getTag() {
       return this.tag || this.element;
     },
@@ -265,12 +281,6 @@ const draggableComponent = {
     },
 
     getChildrenNodes() {
-      if (!this.init) {
-        this.noneFunctionalComponentMode =
-          this.noneFunctionalComponentMode && this.$children.length === 1;
-        this.init = true;
-      }
-
       if (this.noneFunctionalComponentMode) {
         return this.$children[0].$slots.default;
       }
@@ -300,15 +310,22 @@ const draggableComponent = {
       return { index, element };
     },
 
-    getUnderlyingPotencialDraggableComponent({ __vue__ }) {
+    getUnderlyingPotencialDraggableComponent({ __vue__: vue }) {
       if (
-        !__vue__ ||
-        !__vue__.$options ||
-        __vue__.$options._componentTag !== "transition-group"
+        !vue ||
+        !vue.$options ||
+        !isTransitionName(vue.$options._componentTag)
       ) {
-        return __vue__;
+        if (
+          !("realList" in vue) &&
+          vue.$children.length === 1 &&
+          "realList" in vue.$children[0]
+        )
+          return vue.$children[0];
+
+        return vue;
       }
-      return __vue__.$parent;
+      return vue.$parent;
     },
 
     emitChanges(evt) {
