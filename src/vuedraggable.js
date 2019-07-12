@@ -1,5 +1,12 @@
 import Sortable from "sortablejs";
-import { insertNodeAt, camelize, console, removeNode } from "./util/helper";
+import {
+  insertNodeAt,
+  insertNodesAt,
+  camelize,
+  console,
+  removeNode,
+  removeNodes
+} from "./util/helper";
 
 function buildAttribute(object, propName, value) {
   if (value === undefined) {
@@ -393,46 +400,65 @@ const draggableComponent = {
     },
 
     onDragStart(evt) {
+      console.log("onDragStart", evt);
       this.context = this.getUnderlyingVm(evt.item);
       evt.item._underlying_vm_ = this.clone(this.context.element);
       draggingElement = evt.item;
     },
 
     onDragAdd(evt) {
+      console.log("onDragAdd", evt);
       const element = evt.item._underlying_vm_;
       if (element === undefined) {
         return;
       }
-      removeNode(evt.item);
+      let items = evt.items;
+      let elements = [];
+      if (items.length) {
+        elements = items.map(item => item._underlying_vm_);
+      } else {
+        items = [evt.item];
+      }
+      removeNodes(items);
       const newIndex = this.getVmIndex(evt.newIndex);
-      this.spliceList(newIndex, 0, element);
+      this.spliceList(newIndex, 0, ...elements);
       this.computeIndexes();
-      const added = { element, newIndex };
+      const added = { element, elements, newIndex };
       this.emitChanges({ added });
     },
 
     onDragRemove(evt) {
-      insertNodeAt(this.rootContainer, evt.item, evt.oldIndex);
+      console.log("onDragRemove", evt);
+      const element = evt.item;
+      let elements = evt.items;
+      if (!elements.length) {
+        elements = [element];
+      }
+      insertNodesAt(this.rootContainer, elements, evt.oldIndex);
       if (evt.pullMode === "clone") {
         if (evt.clones) {
-          evt.clones.forEach(clone => {
-            removeNode(clone);
-          });
+          removeNodes(evt.clones);
         } else {
           removeNode(evt.clone);
         }
         return;
       }
       const oldIndex = this.context.index;
-      this.spliceList(oldIndex, 1);
-      const removed = { element: this.context.element, oldIndex };
+      this.spliceList(oldIndex, elements.length);
+      const removed = { element: this.context.element, elements, oldIndex };
       this.resetTransitionData(oldIndex);
       this.emitChanges({ removed });
     },
 
     onDragUpdate(evt) {
-      removeNode(evt.item);
-      insertNodeAt(evt.from, evt.item, evt.oldIndex);
+      console.log("onDragUpdate", evt);
+      if (evt.items.length) {
+        removeNodes(evt.items);
+        insertNodesAt(evt.from, evt.items, evt.oldIndex);
+      } else {
+        removeNode(evt.item);
+        insertNodeAt(evt.from, evt.item, evt.oldIndex);
+      }
       const oldIndex = this.context.index;
       const newIndex = this.getVmIndex(evt.newIndex);
       this.updatePosition(oldIndex, newIndex);
@@ -461,6 +487,7 @@ const draggableComponent = {
     },
 
     onDragMove(evt, originalEvent) {
+      console.log("onDragMove", evt);
       const onMove = this.move;
       if (!onMove || !this.realList) {
         return true;

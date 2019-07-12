@@ -25,6 +25,12 @@ function removeNode(node) {
   }
 }
 
+function removeNodes(nodes) {
+  nodes.forEach(node => {
+    removeNode(node);
+  });
+}
+
 function insertNodeAt(fatherNode, node, position) {
   const refNode =
     position === 0
@@ -33,4 +39,21 @@ function insertNodeAt(fatherNode, node, position) {
   fatherNode.insertBefore(node, refNode);
 }
 
-export { insertNodeAt, camelize, console, removeNode };
+function insertNodesAt(fatherNode, nodes, position) {
+  const refNode =
+    position === 0
+      ? fatherNode.children[0]
+      : fatherNode.children[position - 1].nextSibling;
+  nodes.forEach(node => {
+    fatherNode.insertBefore(node, refNode);
+  });
+}
+
+export {
+  insertNodeAt,
+  insertNodesAt,
+  camelize,
+  console,
+  removeNode,
+  removeNodes
+};
